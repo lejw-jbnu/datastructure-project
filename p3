@@ -1,0 +1,96 @@
+from collections import deque
+# 프로젝트 문제 3번
+input = [[4, 3, 2, 1],
+         [0, 0, 0, 0],
+         [0, 0, 9, 0],
+         [1, 2, 3, 4]]
+N = 4
+
+forest = []
+def bfs_minimum_distance(map,goal, Bear_x,Bear_y,bear_size): # 곰이 벌집으로 향하는 최소시간 반환함수
+    # 방향 벡터 (상, 하, 좌, 우)
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    n = len(map)  # 맵의 크기 (NxN)
+
+    # 방문 여부를 체크하는 리스트
+    visited = [[False] * n for _ in range(n)]
+
+    # 시작점 설정
+    queue = deque([(Bear_x, Bear_y, 0)])  # (x, y, 거리)
+    visited[Bear_x][Bear_y] = True
+
+    while queue:
+        x, y, dist = queue.popleft()
+
+        # 목표 지점에 도달하면 거리 반환
+        if (x, y) == goal:
+            return dist
+
+        # 4방향 탐색
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+
+            # 맵 범위 내에 있고, 이동 가능한 경로이며, 방문하지 않은 경우
+            if 0 <= nx < n and 0 <= ny < n and not visited[nx][ny] and map[nx][ny] <= bear_size:
+                queue.append((nx, ny, dist + 1))
+                visited[nx][ny] = True
+
+    # 목표 지점에 도달할 수 없는 경우
+    return -1
+
+def problem3(input):
+    bear_size = 2
+    honeycomb_count = 0
+    bear_x, bear_y = 0, 0                       
+    # 입력 힌트
+
+    # forest 리스트를 input 리스트로 초기화
+    forest = [row[:] for row in input]
+    
+    # 곰의 초기 위치 찾기
+    for i in range(N):
+        for j in range(N):
+            if forest[i][j] == 9:
+                bear_x, bear_y = i, j
+                forest[i][j] = 0
+    print("곰의 초기 위치 x : {0}, y : {1}".format(bear_x, bear_y))
+
+    #여기에서부터 코드를 작성하세요.
+
+    Bear_eat=0                            # 곰이 크기가 커지기 전 먹어치운 꿀통의 수
+    result=0                              # 곰이 총 이동한 시간 즉, 문제의 정답이 될 변수  
+    honeycomb_list=[]                     # 곰의 현재위치에서 털수 있는 꿀통의 리스트
+
+    while True:                           # 곰이 시작 위치에서 문제에서 주어진 조건에 맞춰 꿀통을 다 털때까지 반복하는 루프
+        for a in range(N):                # 곰이 현재위치에서 털 수 있는 꿀통을 리스트에 추가하는 반복문
+            for b in range(N):
+               if 0<forest[a][b]<bear_size:
+                 honeycomb_list.append((a,b))
+
+        if len(honeycomb_list)==0:        # 곰이 털 수 있는 꿀통이 없으면 종료하는 조건문
+           break
+
+        honeycomb_list.sort(key=lambda honeycomb: ((honeycomb[0] - bear_x) ** 2 + (honeycomb[1] - bear_y) ** 2) ** 0.5)    # 곰의 현재위치에서 털 수 있는 꿀통까지의 거리순으로(오름차순) 좌표들을 정렬
+
+        for a in range(len(honeycomb_list) - 1):                # 곰의 현재위치에서 꿀통까지의 거리가 같은 요소가 중복될 때 문제에서 주어진 조건대로 (위에있는 것부터, 같은 y좌표에선 왼쪽에 있는거부터) 우선순위를 조정하는 반복문
+            if ((honeycomb_list[a][0] - bear_x) ** 2 + (honeycomb_list[a][1] - bear_y) ** 2) ** 0.5 == ((honeycomb_list[a + 1][0] - bear_x) ** 2 + (honeycomb_list[a + 1][1] - bear_y) ** 2) ** 0.5:
+                if honeycomb_list[a][1] < honeycomb_list[a + 1][1] or (honeycomb_list[a][1] == honeycomb_list[a + 1][1] and honeycomb_list[a][0] > honeycomb_list[a + 1][0]):
+                  honeycomb_list[a], honeycomb_list[a + 1] = honeycomb_list[a + 1], honeycomb_list[a]
+        #73~78라인의 정렬과정을 통해 honeycomb_list의 첫 요소가 곰이 찾아갈 꿀통의 좌표가 된다.
+                 
+        goal = (honeycomb_list[0][0], honeycomb_list[0][1])         # honeycomb_list의 첫요소를 목적지로 설정
+        result += bfs_minimum_distance(forest, goal, bear_x,bear_y,bear_size)       # 곰이 꿀통으로 향하는 최소시간 반환함수
+        bear_x=honeycomb_list[0][0]                           # 꿀통을 하나 털고 다음 꿀통으로 가기전 곰의 x좌표 초기화
+        bear_y=honeycomb_list[0][1]                           # 꿀통을 하나 털고 다음 꿀통으로 가기전 곰의 y좌표 초기화
+        forest[honeycomb_list[0][0]][honeycomb_list[0][1]]=0                    # 털었던 꿀통이 있는 좌표의 가중치를 0으로 초기화
+        Bear_eat += 1                                   # 꿀통을 하나 털고 털은 꿀통 수 하나 카운트
+        if Bear_eat == bear_size:                       # 털었던 꿀통의 개수와 곰의 크기가 같을 경우 사이즈업+1 and 먹은꿀통개수 초기화 조건문
+            bear_size += 1
+            Bear_eat = 0
+        honeycomb_list.clear()                          # 꿀통있는 리스트 초기화(최우선 꿀통은 매 루프마다 초기화 되기 때문)
+    return result                                       # 총 이동시간 반환
+
+result = problem3(input)
+
+assert result == 14
+print("정답입니다.")
